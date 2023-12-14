@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
@@ -6,23 +8,45 @@ import time
 
 def scrape_position_data(url, driver):
     driver.get(url)
+    time.sleep(5)  # Adjust the sleep time as needed for page load
 
-    # Wait for the page to load. Adjust the sleep time as needed.
-    time.sleep(5)
-
-    # Use BeautifulSoup to parse the page source
     soup = BeautifulSoup(driver.page_source, 'html.parser')
     
-    # Locate and extract data. This part needs to be tailored to the page structure.
-    # For example, extracting table rows, columns, etc.
-    # ...
+    rows = soup.find_all('tr', class_='TableBase-bodyTr')
+    position_data = []
 
-    # Return structured data for this position
-    return [
-        # Example structure
-        {"player_name": "Player Name", "stat1": value1, "stat2": value2},
-        # ...
-    ]
+    for row in rows:
+        player_data = {}
+
+        # Extracting player name, position, and team
+        player_name_tag = row.find('a')
+        if player_name_tag:
+            player_data['player_name'] = player_name_tag.get_text(strip=True)
+
+        position_tag = row.find('span', class_='CellPlayerName-position')
+        if position_tag:
+            player_data['position'] = position_tag.get_text(strip=True)
+
+        team_tag = row.find('span', class_='CellPlayerName-team')
+        if team_tag:
+            player_data['team'] = team_tag.get_text(strip=True)
+
+        # Extracting statistics from each row
+        stat_tags = row.find_all('td', class_='TableBase-bodyTd--number')
+        stats = [tag.get_text(strip=True) for tag in stat_tags]
+
+        # Assuming a fixed number and order of stats, assign them to named fields
+        if len(stats) >= 20:  # Modify this condition based on the actual number of stats
+            player_data.update({
+                'stat1': stats[0],  # Replace 'stat1', 'stat2', etc. with actual stat names
+                'stat2': stats[1],
+                # Continue for all other stats...
+                'stat20': stats[19]
+            })
+
+        position_data.append(player_data)
+
+    return position_data
 
 def get_cbs_sports_data():
     base_url = "https://www.cbssports.com/fantasy/baseball/stats/"
